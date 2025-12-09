@@ -1,0 +1,11 @@
+groups:
+  - name: app_alerts
+    rules:
+      - alert: AppInstanceDown
+        expr: up{job="app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "La aplicación no está respondiendo"
+          description: "Todas las instancias del servicio 'app' están caídas durante más de 1 minuto."

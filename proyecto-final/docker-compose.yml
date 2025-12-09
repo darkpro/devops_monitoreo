@@ -1,0 +1,70 @@
+version: "3.8"
+
+services:
+
+  app:
+    build: ./app
+    restart: always
+    networks:
+      - monitoreo
+    labels:
+      - "service=app"
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - monitoreo
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./observabilidad/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./observabilidad/alert_rules.yml:/etc/prometheus/alert_rules.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoreo
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - monitoreo
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+    networks:
+      - monitoreo
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.0
+    ports:
+      - "5601:5601"
+    networks:
+      - monitoreo
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.15.0
+    volumes:
+      - ./elk/filebeat.yml:/usr/share/filebeat/filebeat.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    networks:
+      - monitoreo
+    depends_on:
+      - elasticsearch
+      - kibana
+
+networks:
+  monitoreo:
+    driver: bridge
